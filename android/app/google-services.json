@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "396947772259",
+    "project_id": "videollamadas-flutter",
+    "storage_bucket": "videollamadas-flutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:396947772259:android:826624d45ee4babd3fb956",
+        "android_client_info": {
+          "package_name": "com.example.proyecto_android_videollamada"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSaZWu_IoA7Edgs0YEiQ_lY2ghmYH4HFk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
