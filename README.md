@@ -2,7 +2,7 @@
 
 Un proyecto de NovaUniversitas
 
-## Getting Started
+##Información del proyecto
 
 Este proyecto intenta crear una conexión entre estudiantes y profesores.
 
