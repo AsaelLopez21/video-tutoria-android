@@ -1,16 +1,14 @@
 # proyecto_android_videollamada
 
-A new Flutter project.
+Un proyecto de NovaUniversitas
 
-## Getting Started
+##Información del proyecto
 
-This project is a starting point for a Flutter application.
+Este proyecto intenta crear una conexión entre estudiantes y profesores.
 
-A few resources to get you started if this is your first Flutter project:
+Se usa el framework flutter-dart para crear la interfaz en el teléfono movil, 
+la base de datos se despliega en firebase donde guardamos información sobre el 
+usuario, pantallas de login y registro para los usuarios, pantallas de calendario,
+pantalla para agregar, editar y eliminar contactos, pantalla similar para agregar,
+editar y eliminar notas del usuario.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
