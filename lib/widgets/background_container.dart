@@ -1,4 +1,3 @@
-// widgets/background_container.dart
 import 'package:flutter/material.dart';
 
 class BackgroundContainer extends StatelessWidget {
@@ -8,13 +7,13 @@ class BackgroundContainer extends StatelessWidget {
   const BackgroundContainer({
     super.key,
     required this.child,
-    this.floatingActionButton,  // Se agrega este parámetro opcional
+    this.floatingActionButton,  
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Evita que el fondo se mueva
+      resizeToAvoidBottomInset: false, 
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -26,7 +25,7 @@ class BackgroundContainer extends StatelessWidget {
         ),
         child: SafeArea(child: child),
       ),
-      floatingActionButton: floatingActionButton, // Aquí se pasa el fab
+      floatingActionButton: floatingActionButton, 
     );
   }
 }

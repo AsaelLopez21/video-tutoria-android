@@ -22,7 +22,6 @@ class LoginRedirect extends StatelessWidget {
           const SizedBox(height: 5),
           GestureDetector(
             onTap: () {
-              // Aquí puedes hacer Navigator.pushNamed(context, '/login');
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),

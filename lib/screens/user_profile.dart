@@ -6,9 +6,14 @@ import '../themes/app_colors.dart';
 class UserProfileScreen extends StatelessWidget {
   final String email;
   final String role;
+  final String? matricula;
 
-  const UserProfileScreen({Key? key, required this.email, required this.role})
-    : super(key: key);
+  const UserProfileScreen({
+    Key? key,
+    required this.email,
+    required this.role,
+    this.matricula,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +35,7 @@ class UserProfileScreen extends StatelessWidget {
               radius: 40,
               backgroundImage: AssetImage('assets/images/nova.png'),
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 35),
             Flexible(
               child: Align(
                 alignment: Alignment.topCenter,
@@ -67,13 +72,16 @@ class UserProfileScreen extends StatelessWidget {
                       _buildDisplayField('Correo', email),
                       const SizedBox(height: 16),
                       _buildDisplayField('Rol', role),
+                      if (matricula != null && matricula!.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _buildDisplayField('Matrícula', matricula!),
+                      ],
                       const SizedBox(height: 30),
                       ElevatedButton(
                         onPressed: () async {
                           print('cerrando sesión');
                           await FirebaseAuth.instance.signOut();
 
-                          // Verifica si el widget aún está montado antes de usar `context`
                           if (!context.mounted) return;
 
                           Navigator.pushAndRemoveUntil(

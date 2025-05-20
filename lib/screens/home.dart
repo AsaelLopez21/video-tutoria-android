@@ -9,23 +9,28 @@ import 'package:proyecto_android_videollamada/widgets/bottom_navbar.dart';
 class HomeScreen extends StatelessWidget {
   final String email;
   final String role;
+  final String? matricula;
 
-  const HomeScreen({Key? key, required this.email, required this.role})
-    : super(key: key);
+  const HomeScreen({
+    Key? key,
+    required this.email,
+    required this.role,
+    this.matricula,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Usamos MediaQuery para obtener el tamaño de la pantalla
     return Scaffold(
-      // resizeToAvoidBottomInset:
-      //     false, // Permitimos el movimiento del contenido, no del fondo
-      // PersistentBottomNavBar que permanece fijo en la parte inferior
       bottomNavigationBar: PersistentBottomNavBar(
         menuItems: [
           NavbarPages(
             titleMenu: "Inicio",
             icon: Icons.home,
-            screen: UserProfileScreen(email: email, role: role),
+            screen: UserProfileScreen(
+              email: email,
+              role: role,
+              matricula: matricula,
+            ),
             route: '/home',
           ),
           NavbarPages(

@@ -94,12 +94,18 @@ class _LoginCard extends StatelessWidget {
         final data = doc.data();
         final role = data?['rol'] ?? 'sin rol';
         final userEmail = user.email ?? '';
+        final matricula = data?['matricula'] as String?;
 
         // Navegar manualmente a HomeScreen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => HomeScreen(email: userEmail, role: role),
+            builder:
+                (_) => HomeScreen(
+                  email: userEmail,
+                  role: role,
+                  matricula: matricula,
+                ),
           ),
         );
       }
