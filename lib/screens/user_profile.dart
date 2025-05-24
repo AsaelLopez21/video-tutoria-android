@@ -4,15 +4,17 @@ import 'package:proyecto_android_videollamada/screens/register.dart';
 import '../themes/app_colors.dart';
 
 class UserProfileScreen extends StatelessWidget {
-  final String email;
-  final String role;
+  final String? email;
+  final String? role;
   final String? matricula;
+  final String? nombre;
 
   const UserProfileScreen({
     Key? key,
-    required this.email,
-    required this.role,
+    this.email,
+    this.role,
     this.matricula,
+    this.nombre,
   }) : super(key: key);
 
   @override
@@ -40,7 +42,7 @@ class UserProfileScreen extends StatelessWidget {
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(16),
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
                     color: const Color.fromARGB(35, 0, 187, 255),
@@ -49,7 +51,7 @@ class UserProfileScreen extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color: Colors.white.withOpacity(0.2),
-                        blurRadius: 30,
+                        blurRadius: 20,
                         spreadRadius: 1,
                         offset: const Offset(0, 3),
                       ),
@@ -62,24 +64,29 @@ class UserProfileScreen extends StatelessWidget {
                         'Información de usuario',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Inter',
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
-                      _buildDisplayField('Correo', email),
                       const SizedBox(height: 16),
-                      _buildDisplayField('Rol', role),
+                      _buildDisplayField(nombre ?? 'No disponible'),
+
                       if (matricula != null && matricula!.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _buildDisplayField('Matrícula', matricula!),
+                        const SizedBox(height: 12),
+                        _buildDisplayField(matricula!),
                       ],
-                      const SizedBox(height: 30),
+
+                      if (matricula == null || matricula?.isEmpty == true) ...[
+                        const SizedBox(height: 16),
+                        _buildDisplayField(email ?? 'No disponible'),
+                      ],
+                      const SizedBox(height: 12),
+                      _buildDisplayField(role ?? 'No disponible'),
+                      const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () async {
-                          print('cerrando sesión');
                           await FirebaseAuth.instance.signOut();
 
                           if (!context.mounted) return;
@@ -92,7 +99,6 @@ class UserProfileScreen extends StatelessWidget {
                             (Route<dynamic> route) => false,
                           );
                         },
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.lightViolet,
                           padding: const EdgeInsets.symmetric(
@@ -123,29 +129,30 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDisplayField(String label, String value) {
+  Widget _buildDisplayField(String value) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.darkBlue,
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x40000000),
-            offset: Offset(0, 4),
-            blurRadius: 4,
+            color: Color(0x30000000),
+            offset: Offset(0, 2),
+            blurRadius: 3,
           ),
         ],
-        border: Border.all(color: Color(0xFFD9D9D9), width: 1),
+        border: Border.all(color: const Color(0xFFB0B0B0), width: 1),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Text(
-        '$label: $value',
+        value,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
+        textAlign: TextAlign.center,
       ),
     );
   }

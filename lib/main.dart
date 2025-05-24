@@ -47,12 +47,19 @@ class MyApp extends StatelessWidget {
 
                 final role = data?['rol'] ?? 'sin rol';
                 final email = user.email ?? '';
+                final nombre = data?['nombre'] as String? ?? 'Usuario';
+                final rawMatricula = data?['matricula'];
+                final matricula = rawMatricula is String ? rawMatricula : null;
 
-                return HomeScreen(email: email, role: role);
+                return HomeScreen(
+                  email: email,
+                  role: role,
+                  nombre: nombre,
+                  matricula: matricula,
+                );
               },
             );
           }
-
           return const RegisterScreen();
         },
       ),

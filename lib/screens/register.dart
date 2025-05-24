@@ -2,10 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../themes/app_colors.dart';
-import '../widgets/custom_text.dart';
-import '../widgets/role_selector.dart';
-import '../widgets/login_redirect.dart';
-import '../widgets/password_field.dart';
+import 'package:proyecto_android_videollamada/widgets/widgets_import.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -19,12 +16,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String password = '';
   String email = '';
   String matricula = '';
+  String nombre = '';
+  String telefono = '';
 
   Future<void> createUser() async {
     try {
       if (email.isEmpty ||
           password.isEmpty ||
           selectedRole == null ||
+          nombre.trim().isEmpty ||
+          telefono.trim().isEmpty ||
           (selectedRole == 'Estudiante' && matricula.trim().isEmpty)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -33,6 +34,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
+
+      if (RegExp(r'[0-9]').hasMatch(nombre)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El nombre no puede contener números.')),
+        );
+        return;
+      }
+
+      if (RegExp(r'[A-Za-z]').hasMatch(telefono)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El teléfono solo debe contener números.'),
+          ),
+        );
+        return;
+      }
+
+      if (selectedRole == 'Estudiante') {
+        final query =
+            await FirebaseFirestore.instance
+                .collection('usuarios')
+                .where('matricula', isEqualTo: matricula.trim())
+                .get();
+
+        if (query.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('La matrícula ya está registrada.')),
+          );
+          return;
+        }
+      }
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
 
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
@@ -43,6 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final userData = {
           'email': email,
           'rol': selectedRole,
+          'nombre': nombre.trim(),
+          'telefono': telefono.trim(),
           'createdAt': Timestamp.now(),
         };
 
@@ -56,14 +96,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             .set(userData);
 
         if (context.mounted) {
+          // ignore: use_build_context_synchronously
+          Navigator.pop(context); // Quitar loading
           Navigator.pushReplacementNamed(
+            // ignore: use_build_context_synchronously
             context,
             'home',
-            arguments: {'email': email, 'role': selectedRole!,'matricula':matricula},
+            arguments: {
+              'email': email,
+              'role': selectedRole!,
+              'matricula': matricula,
+              'nombre':nombre
+            },
           );
         }
       }
     } on FirebaseAuthException catch (e) {
+      // ignore: use_build_context_synchronously
+      if (context.mounted) Navigator.pop(context);
       String errorMessage;
       switch (e.code) {
         case 'email-already-in-use':
@@ -132,10 +182,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'Video Tutoría\nRegistro',
+                        'Video Tutoría Registro',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Inter',
                         ),
@@ -158,17 +208,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       CustomTextField(
+                        hintText: 'Nombre',
+                        keyboardType: TextInputType.name,
+                        isCompact: true,
+                        onChanged: (v) => setState(() => nombre = v),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
+                        hintText: 'Teléfono',
+                        keyboardType: TextInputType.phone,
+                        isCompact: true,
+                        onChanged: (v) => setState(() => telefono = v),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
                         hintText: 'Correo',
+                        isCompact: true,
+                        keyboardType: TextInputType.emailAddress,
                         onChanged: (v) => setState(() => email = v),
                       ),
                       const SizedBox(height: 12),
                       CustomStyledPasswordField(
                         onChanged: (v) => setState(() => password = v),
+                        isCompact: true,
                       ),
                       if (selectedRole == 'Estudiante') ...[
                         const SizedBox(height: 12),
                         CustomTextField(
                           hintText: 'Matrícula',
+                          keyboardType: TextInputType.text,
+                          isCompact: true,
                           onChanged: (v) => setState(() => matricula = v),
                         ),
                       ],

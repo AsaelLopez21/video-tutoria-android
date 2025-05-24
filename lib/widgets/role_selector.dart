@@ -1,4 +1,3 @@
-// lib/widgets/role_selector.dart
 import 'package:flutter/material.dart';
 import '../themes/app_colors.dart';
 

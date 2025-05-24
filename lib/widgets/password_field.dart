@@ -3,9 +3,13 @@ import '../themes/app_colors.dart';
 
 class CustomStyledPasswordField extends StatefulWidget {
   final ValueChanged<String> onChanged;
+  final bool isCompact; 
 
-  const CustomStyledPasswordField({Key? key, required this.onChanged})
-    : super(key: key);
+  const CustomStyledPasswordField({
+    Key? key,
+    required this.onChanged,
+    this.isCompact = false, 
+  }) : super(key: key);
 
   @override
   State<CustomStyledPasswordField> createState() =>
@@ -23,7 +27,12 @@ class _CustomStyledPasswordFieldState extends State<CustomStyledPasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final double fontSize = widget.isCompact ? 16 : 20;
+    final double verticalPadding = widget.isCompact ? 8 : 13;
+    final double containerHeight = widget.isCompact ? 40 : 60;
+
     return Container(
+      height: containerHeight,
       decoration: BoxDecoration(
         color: AppColors.darkBlue,
         borderRadius: BorderRadius.circular(50),
@@ -34,26 +43,26 @@ class _CustomStyledPasswordFieldState extends State<CustomStyledPasswordField> {
             blurRadius: 4,
           ),
         ],
-        border: Border.all(color: Color(0xFFD9D9D9), width: 1),
+        border: Border.all(color: const Color(0xFFD9D9D9), width: 1),
       ),
       child: TextField(
         onChanged: widget.onChanged,
         obscureText: _obscureText,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: fontSize,
           fontWeight: FontWeight.w700,
         ),
         decoration: InputDecoration(
           hintText: 'Contraseña',
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: fontSize,
             fontWeight: FontWeight.w700,
           ),
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 18,
-            vertical: 13,
+            vertical: verticalPadding,
           ),
           border: InputBorder.none,
           suffixIcon: IconButton(

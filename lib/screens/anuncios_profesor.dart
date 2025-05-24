@@ -3,13 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../themes/app_colors.dart';
 
-class ContactsScreen extends StatelessWidget {
-  const ContactsScreen({Key? key}) : super(key: key);
+class Anunciosprofesor extends StatelessWidget {
+  const Anunciosprofesor({Key? key}) : super(key: key);
 
   void _mostrarDialogoAgregar(BuildContext context) {
-    final nombreController = TextEditingController();
-    final telefonoController = TextEditingController();
-    final correoController = TextEditingController();
+    final tituloController = TextEditingController();
+    final contenidoController = TextEditingController();
 
     showDialog(
       context: context,
@@ -20,24 +19,20 @@ class ContactsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           title: const Text(
-            'Agregar contacto',
+            'Agregar anuncio',
             style: TextStyle(color: AppColors.darkBlue),
           ),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  controller: tituloController,
+                  decoration: const InputDecoration(labelText: 'Título'),
                 ),
                 TextField(
-                  controller: telefonoController,
-                  decoration: const InputDecoration(labelText: 'Teléfono'),
-                  keyboardType: TextInputType.phone,
-                ),
-                TextField(
-                  controller: correoController,
-                  decoration: const InputDecoration(labelText: 'Correo'),
+                  controller: contenidoController,
+                  decoration: const InputDecoration(labelText: 'Contenido'),
+                  maxLines: 5,
                 ),
               ],
             ),
@@ -52,25 +47,22 @@ class ContactsScreen extends StatelessWidget {
             ),
             TextButton(
               onPressed: () async {
-                final nombre = nombreController.text.trim();
-                final telefono = telefonoController.text.trim();
-                final correo = correoController.text.trim();
+                final titulo = tituloController.text.trim();
+                final contenido = contenidoController.text.trim();
 
-                if (nombre.isNotEmpty &&
-                    telefono.isNotEmpty &&
-                    correo.isNotEmpty) {
+                if (titulo.isNotEmpty && contenido.isNotEmpty) {
                   final uid = FirebaseAuth.instance.currentUser!.uid;
                   final docRef =
                       FirebaseFirestore.instance
                           .collection('usuarios')
                           .doc(uid)
-                          .collection('contactos')
+                          .collection('notas')
                           .doc();
 
                   await docRef.set({
-                    'nombre': nombre,
-                    'telefono': telefono,
-                    'correo': correo,
+                    'titulo': titulo,
+                    'contenido': contenido,
+                    'fecha': DateTime.now(),
                   });
 
                   Navigator.pop(context);
@@ -87,16 +79,15 @@ class ContactsScreen extends StatelessWidget {
     );
   }
 
-  void _showEditDialog(
+  void _mostrarDialogoEditar(
     BuildContext context,
-    Map<String, dynamic> contactData,
-    String contactId,
+    Map<String, dynamic> anuncioData,
+    String anuncioID,
   ) {
-    final nombreController = TextEditingController(text: contactData['nombre']);
-    final telefonoController = TextEditingController(
-      text: contactData['telefono'],
+    final tituloController = TextEditingController(text: anuncioData['titulo']);
+    final contenidoController = TextEditingController(
+      text: anuncioData['contenido'],
     );
-    final correoController = TextEditingController(text: contactData['correo']);
 
     showDialog(
       context: context,
@@ -107,23 +98,20 @@ class ContactsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           title: const Text(
-            'Editar contacto',
+            'Editar anuncio',
             style: TextStyle(color: AppColors.darkBlue),
           ),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  controller: tituloController,
+                  decoration: const InputDecoration(labelText: 'Título'),
                 ),
                 TextField(
-                  controller: telefonoController,
-                  decoration: const InputDecoration(labelText: 'Teléfono'),
-                ),
-                TextField(
-                  controller: correoController,
-                  decoration: const InputDecoration(labelText: 'Correo'),
+                  controller: contenidoController,
+                  decoration: const InputDecoration(labelText: 'Contenido'),
+                  maxLines: 5,
                 ),
               ],
             ),
@@ -135,8 +123,8 @@ class ContactsScreen extends StatelessWidget {
                 await FirebaseFirestore.instance
                     .collection('usuarios')
                     .doc(FirebaseAuth.instance.currentUser!.uid)
-                    .collection('contactos')
-                    .doc(contactId)
+                    .collection('notas')
+                    .doc(anuncioID)
                     .delete();
               },
               child: const Text(
@@ -150,12 +138,11 @@ class ContactsScreen extends StatelessWidget {
                 await FirebaseFirestore.instance
                     .collection('usuarios')
                     .doc(FirebaseAuth.instance.currentUser!.uid)
-                    .collection('contactos')
-                    .doc(contactId)
+                    .collection('notas')
+                    .doc(anuncioID)
                     .update({
-                      'nombre': nombreController.text,
-                      'telefono': telefonoController.text,
-                      'correo': correoController.text,
+                      'titulo': tituloController.text,
+                      'contenido': contenidoController.text,
                     });
               },
               child: const Text(
@@ -209,24 +196,25 @@ class ContactsScreen extends StatelessWidget {
                       FirebaseFirestore.instance
                           .collection('usuarios')
                           .doc(uid)
-                          .collection('contactos')
+                          .collection('notas')
+                          .orderBy('fecha', descending: true)
                           .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return const Center(
-                        child: Text('Error al cargar contactos'),
+                        child: Text('Error al cargar anuncios'),
                       );
                     }
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final contactos = snapshot.data!.docs;
+                    final anuncios = snapshot.data!.docs;
 
-                    if (contactos.isEmpty) {
+                    if (anuncios.isEmpty) {
                       return const Center(
                         child: Text(
-                          'No tienes contactos aún.',
+                          'No tienes anuncios aún.',
                           style: TextStyle(color: Colors.white),
                         ),
                       );
@@ -234,10 +222,10 @@ class ContactsScreen extends StatelessWidget {
 
                     return ListView.builder(
                       shrinkWrap: true,
-                      itemCount: contactos.length,
+                      itemCount: anuncios.length,
                       itemBuilder: (context, index) {
-                        final contacto = contactos[index];
-                        final data = contacto.data() as Map<String, dynamic>;
+                        final anuncio = anuncios[index];
+                        final data = anuncio.data() as Map<String, dynamic>;
 
                         return Card(
                           color: Colors.blue,
@@ -245,41 +233,26 @@ class ContactsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(
-                            leading: const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                            ),
                             title: GestureDetector(
                               onTap:
-                                  () => _showEditDialog(
+                                  () => _mostrarDialogoEditar(
                                     context,
                                     data,
-                                    contacto.id,
+                                    anuncio.id,
                                   ),
                               child: Text(
-                                data['nombre'] ?? '',
+                                data['titulo'] ?? '',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  data['telefono'] ?? '',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                                Text(
-                                  data['correo'] ?? '',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.call, color: Colors.white),
-                              onPressed: () {},
+                            subtitle: Text(
+                              data['contenido'] ?? '',
+                              style: const TextStyle(color: Colors.white70),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         );
@@ -295,7 +268,7 @@ class ContactsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _mostrarDialogoAgregar(context),
         backgroundColor: AppColors.lightViolet,
-        child: const Icon(Icons.person_add_alt_1, color: Colors.white),
+        child: const Icon(Icons.note_add, color: Colors.white),
       ),
     );
   }

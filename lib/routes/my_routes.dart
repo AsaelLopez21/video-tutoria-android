@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto_android_videollamada/screens/calendar.dart';
-import 'package:proyecto_android_videollamada/screens/contacts.dart';
-import 'package:proyecto_android_videollamada/screens/notes.dart';
-import 'package:proyecto_android_videollamada/screens/register.dart';
-import 'package:proyecto_android_videollamada/screens/login.dart';
-import 'package:proyecto_android_videollamada/screens/home.dart';
+import 'package:proyecto_android_videollamada/widgets/screens_imports.dart';
 
 class MyRoutes {
   static Map<String, WidgetBuilder> getRoutes() {
@@ -12,16 +7,24 @@ class MyRoutes {
       'login': (context) => const LoginScreen(),
       'register': (context) => const RegisterScreen(),
       'calendar': (context) => const CalendarScreen(),
-      'contacts': (context) => const ContactsScreen(),
-      'notes': (context) => const NotesScreen(),
+      'asesorados': (context) => const AsesoradosScreen(),
+      'anunciosProfesor': (context) => const Anunciosprofesor(),
+      'anunciosAlumno': (context) => const AnunciosAlumno(),
+      'tutor': (context) => const TutorScreen(),
 
       'home': (context) {
         final args =
-            ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+        if (args == null) {
+          return const LoginScreen();
+        }
+
         return HomeScreen(
-          email: args['email'],
-          role: args['role'],
-          matricula: args['matricula'],
+          email: args['email'] as String? ?? '',
+          role: args['role'] as String? ?? 'sin rol',
+          matricula: args['matricula'] as String?,
+          nombre: args['nombre'] as String? ?? 'Usuario',
         );
       },
     };

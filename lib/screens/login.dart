@@ -1,7 +1,5 @@
-// lib/screens/register_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto_android_videollamada/screens/home.dart';
 import '../widgets/password_field.dart';
@@ -75,7 +73,7 @@ class _LoginCard extends StatelessWidget {
     required this.onEmailChanged,
     required this.onPasswordChanged,
   });
-  Future<void> loginUser(BuildContext context) async {
+  Future<Map<String, dynamic>?> loginUser(BuildContext context) async {
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -95,19 +93,14 @@ class _LoginCard extends StatelessWidget {
         final role = data?['rol'] ?? 'sin rol';
         final userEmail = user.email ?? '';
         final matricula = data?['matricula'] as String?;
+        final nombre = data?['nombre'] as String? ?? 'Nombre no disponible';
 
-        // Navegar manualmente a HomeScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder:
-                (_) => HomeScreen(
-                  email: userEmail,
-                  role: role,
-                  matricula: matricula,
-                ),
-          ),
-        );
+        return {
+          'email': userEmail,
+          'role': role,
+          'matricula': matricula,
+          'nombre': nombre,
+        };
       }
     } on FirebaseAuthException catch (e) {
       String message;
@@ -127,6 +120,7 @@ class _LoginCard extends StatelessWidget {
         const SnackBar(content: Text('Ocurrió un error inesperado.')),
       );
     }
+    return null;
   }
 
   @override
@@ -161,38 +155,74 @@ class _LoginCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8), // Reduced spacing
-          CustomTextField(hintText: 'Correo', onChanged: onEmailChanged),
+          CustomTextField(
+            hintText: 'Correo',
+            isCompact: true,
+
+            onChanged: onEmailChanged,
+            keyboardType: TextInputType.emailAddress,
+          ),
           const SizedBox(height: 32), // Reduced spacing
-          CustomStyledPasswordField(onChanged: onPasswordChanged),
+          CustomStyledPasswordField(
+            onChanged: onPasswordChanged,
+            isCompact: true,
+          ),
           const SizedBox(height: 20),
           Center(
             child: ElevatedButton(
               onPressed: () async {
-                await loginUser(context);
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (context) =>
+                          const Center(child: CircularProgressIndicator()),
+                );
+
+                final userData = await loginUser(context);
+
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context, rootNavigator: true).pop();
+                }
+
+                if (userData != null && context.mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => HomeScreen(
+                            email: userData['email'],
+                            role: userData['role'],
+                            matricula: userData['matricula'],
+                            nombre: userData['nombre'],
+                          ),
+                    ),
+                  );
+                }
               },
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.lightViolet,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    40,
-                  ), // Reduced border radius
+                  borderRadius: BorderRadius.circular(40),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 40, // Reduced padding
-                  vertical: 10, // Reduced padding
+                  horizontal: 40,
+                  vertical: 10,
                 ),
               ),
               child: const Text(
                 'Iniciar sesión',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 14, // Reduced font size
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 30), // Reduced spacing
+
+          const SizedBox(height: 30),
           const RegisterRedirect(),
         ],
       ),
