@@ -1,128 +1,254 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class CallController {
-  //!instancia del profesor
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   RTCPeerConnection? peerConnection;
   MediaStream? _localStream;
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
+  StreamSubscription<DocumentSnapshot>? callSubscription;
+  StreamSubscription<QuerySnapshot>? iceCandidatesSubscription;
+
+  bool _isDisposed = false;
+
+  Future<void> initializeRenderers() async {
+    await localRenderer.initialize();
+    await remoteRenderer.initialize();
+  }
+
+  //y => Inicia una llamada
   Future<String?> startCall(String calleeId) async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return null;
 
-    //y => descubrir las IP, ICE servidores para negociar la conexion
     final configuration = {
       'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'}, //y => servidor para pruebas
+        {'urls': 'stun:stun.l.google.com:19302'},
       ],
     };
 
-    //!conexion de los dispositivos
     peerConnection = await createPeerConnection(configuration);
 
-    await localRenderer.initialize();
-    await remoteRenderer.initialize();
+    final callDoc = _firestore.collection('calls').doc();
+    final callId = callDoc.id;
 
-    //y => solicitar accesos a camara y microfono
+    //y => Configura onIceCandidate para enviar candidatos a firestore
+    peerConnection!.onIceCandidate = (candidate) async {
+      try {
+        await callDoc.collection('callerCandidates').add(candidate.toMap());
+      } catch (e) {
+        debugPrint('Error enviando candidato ICE caller: $e');
+      }
+    };
+
+    await initializeRenderers();
+
     _localStream = await navigator.mediaDevices.getUserMedia({
       'video': true,
       'audio': true,
     });
 
-    //Y => mostrar audio y video
     localRenderer.srcObject = _localStream;
 
-    //y => agregar pistas de audio y video
     _localStream!.getTracks().forEach((track) {
       peerConnection!.addTrack(track, _localStream!);
     });
 
-    //Y => Escuchar stream remoto
     peerConnection!.onTrack = (event) {
       if (event.streams.isNotEmpty) {
         remoteRenderer.srcObject = event.streams[0];
       }
     };
 
-    //y => crear documento de llamada en firestore
-    final callDoc = _firestore.collection('calls').doc();
-    final callId = callDoc.id;
-
-    //y => buscar candidatos para la conexion
-    peerConnection!.onIceCandidate = (candidate) {
-      callDoc.collection('callerCandidates').add(candidate.toMap());
-    };
-
-    //y =>oferta SDP, proponer como sera la conexion, peer desea conectarse
-    final offer = await peerConnection!.createOffer();
+    final offer = await peerConnection!.createOffer({'iceRestart': true});
     await peerConnection!.setLocalDescription(offer);
 
-    //info => guardar oferta en firestore
     await callDoc.set({
       'callerId': user.uid,
       'calleeId': calleeId,
-      'offer': offer.toMap(), //p => para poder guardarlo en firestore
-      'createdAt': FieldValue.serverTimestamp(), //p => guardar tiempo actual
+      'offer': offer.toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'active': true,
     });
 
-    //y => escuchar la respuesta en firestore, si hay respuesta hacer que WebRTC escuche
-    callDoc.snapshots().listen((snapshot) async {
+    //y => Escuchar respuesta del callee
+    callSubscription = callDoc.snapshots().listen((snapshot) async {
       final data = snapshot.data();
       if (data == null || data['answer'] == null) return;
+
       final answer = RTCSessionDescription(
         data['answer']['sdp'],
         data['answer']['type'],
       );
-      await peerConnection!.setRemoteDescription(answer);
-    });
 
-    //y => escuchar candidatos del estudiante
-    callDoc.collection('calleCandidates').snapshots().listen((snapshot) {
-      for (var docChange in snapshot.docChanges) {
-        if (docChange.type == DocumentChangeType.added) {
-          final data = docChange.doc.data();
-          if (data != null) {
-            peerConnection!.addCandidate(
-              RTCIceCandidate(
-                data['candidate'] ?? '',
-                data['sdpMid'] ?? '',
-                data['sdpMLineIndex'] ?? 0,
-              ),
-            );
-          }
-        }
+      try {
+        await peerConnection!.setRemoteDescription(answer);
+      } catch (e) {
+        debugPrint('Error estableciendo descripción remota: $e');
       }
     });
+
+    //y => escuchar candidatos ICE del callee
+    iceCandidatesSubscription = callDoc
+        .collection('calleeCandidates')
+        .snapshots()
+        .listen((snapshot) {
+          for (var docChange in snapshot.docChanges) {
+            if (docChange.type == DocumentChangeType.added) {
+              final data = docChange.doc.data();
+              if (data != null) {
+                peerConnection!.addCandidate(
+                  RTCIceCandidate(
+                    data['candidate'] ?? '',
+                    data['sdpMid'] ?? '',
+                    data['sdpMLineIndex'] ?? 0,
+                  ),
+                );
+              }
+            }
+          }
+        });
+
     return callId;
   }
 
-  //y => terminar la llamada
-  Future<void> endCall(String callId) async {
-    // ! en firestore
-    localRenderer.srcObject = null;
-    remoteRenderer.srcObject = null;
+  //y => Responde una llamada
+  Future<void> answerCall(String callId) async {
+    final callDoc = _firestore.collection('calls').doc(callId);
+    final callDataSnapshot = await callDoc.get();
+    final callData = callDataSnapshot.data();
 
-    await peerConnection?.close();
-    await localRenderer.dispose();
-    await remoteRenderer.dispose();
-
-    //! eliminar candidatos y documentos
-    for (final sub in ['callerCandidates', 'calleeCandidates']) {
-      final snap =
-          await FirebaseFirestore.instance
-              .collection('calls')
-              .doc(callId)
-              .collection(sub)
-              .get();
-      for (final doc in snap.docs) {
-        await doc.reference.delete();
-      }
+    if (callData == null) {
+      debugPrint('La llamada ya no está disponible');
+      return;
     }
-    await FirebaseFirestore.instance.collection('calls').doc(callId).delete();
+
+    final offer = callData['offer'];
+
+    final configuration = {
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+      ],
+    };
+
+    peerConnection = await createPeerConnection(configuration);
+
+    await initializeRenderers();
+
+    _localStream = await navigator.mediaDevices.getUserMedia({
+      'video': true,
+      'audio': true,
+    });
+
+    localRenderer.srcObject = _localStream;
+
+    _localStream!.getTracks().forEach((track) {
+      peerConnection!.addTrack(track, _localStream!);
+    });
+
+    peerConnection!.onTrack = (event) {
+      if (event.streams.isNotEmpty) {
+        remoteRenderer.srcObject = event.streams[0];
+      }
+    };
+
+    peerConnection!.onIceCandidate = (candidate) async {
+      try {
+        await callDoc.collection('calleeCandidates').add(candidate.toMap());
+      } catch (e) {
+        debugPrint('Error enviando candidato ICE callee: $e');
+      }
+    };
+
+    final offerDesc = RTCSessionDescription(offer['sdp'], offer['type']);
+    await peerConnection!.setRemoteDescription(offerDesc);
+
+    final answer = await peerConnection!.createAnswer();
+    await peerConnection!.setLocalDescription(answer);
+
+    await callDoc.update({'answer': answer.toMap()});
+
+    //y => Escuchar candidatos ICE del caller
+    iceCandidatesSubscription = callDoc
+        .collection('callerCandidates')
+        .snapshots()
+        .listen((snapshot) {
+          for (var docChange in snapshot.docChanges) {
+            if (docChange.type == DocumentChangeType.added) {
+              final data = docChange.doc.data();
+              if (data != null) {
+                peerConnection!.addCandidate(
+                  RTCIceCandidate(
+                    data['candidate'],
+                    data['sdpMid'],
+                    data['sdpMLineIndex'],
+                  ),
+                );
+              }
+            }
+          }
+        });
+  }
+
+  //y => Termina la llamada y limpia recursos
+  Future<void> endCallController(String callId) async {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
+    try {
+      await iceCandidatesSubscription?.cancel();
+      iceCandidatesSubscription = null;
+
+      await callSubscription?.cancel();
+      callSubscription = null;
+
+      _localStream?.getTracks().forEach((track) => track.stop());
+      _localStream = null;
+
+      localRenderer.srcObject = null;
+      remoteRenderer.srcObject = null;
+
+      await peerConnection?.close();
+      peerConnection = null;
+
+      await localRenderer.dispose();
+      await remoteRenderer.dispose();
+
+      final callDoc = _firestore.collection('calls').doc(callId);
+
+      try {
+        await callDoc.update({'active': false});
+      } catch (e) {
+        debugPrint(
+          'No se pudo actualizar active: false, puede que el documento ya no exista.',
+        );
+      }
+
+      await Future.delayed(const Duration(seconds: 1));
+
+      for (final sub in ['callerCandidates', 'calleeCandidates']) {
+        try {
+          final snap = await callDoc.collection(sub).get();
+          for (final doc in snap.docs) {
+            await doc.reference.delete();
+          }
+        } catch (e) {
+          debugPrint('Error eliminando candidatos $sub: $e');
+        }
+      }
+
+      try {
+        await callDoc.delete();
+      } catch (e) {
+        debugPrint('Error eliminando documento de llamada: $e');
+      }
+    } catch (e) {
+      debugPrint('Error al finalizar la llamada: $e');
+    }
   }
 }

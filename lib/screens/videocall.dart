@@ -55,7 +55,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   void hangUp() async {
-    await widget.callController.endCall(widget.callId);
+    try {
+      await widget.callController.endCallController(widget.callId);
+    } catch (e) {
+      debugPrint('Error al finalizar la llamada: $e');
+    }
+    if (!mounted) return;
     Navigator.pop(context);
   }
 
@@ -85,7 +90,10 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(35, 0, 187, 255),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white),
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
+                  ), // borde blanco del container principal
                   boxShadow: [
                     BoxShadow(
                       color: Colors.white.withOpacity(0.2),
@@ -95,26 +103,35 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                     ),
                   ],
                 ),
-                child: Column(
+                child: Stack(
                   children: [
-                    //! video remoto
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: RTCVideoView(
-                          widget.callController.remoteRenderer,
-                          objectFit:
-                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2,
+                          ), // borde blanco en el video remoto
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: RTCVideoView(
+                            widget.callController.remoteRenderer,
+                            objectFit:
+                                RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    //!video local
-                    Align(
-                      alignment: Alignment.centerRight,
+
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      width: 120,
+                      height: 160,
                       child: Container(
-                        width: 120,
-                        height: 160,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.white70),
                           borderRadius: BorderRadius.circular(12),
@@ -131,38 +148,42 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    //! Controles
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        FloatingActionButton(
-                          heroTag: 'mic',
-                          backgroundColor:
-                              micEnabled
-                                  ? AppColors.lightBlue
-                                  : Colors.redAccent,
-                          onPressed: toggleMic,
-                          child: Icon(micEnabled ? Icons.mic : Icons.mic_off),
-                        ),
-                        FloatingActionButton(
-                          heroTag: 'hangup',
-                          backgroundColor: Colors.red,
-                          onPressed: hangUp,
-                          child: const Icon(Icons.call_end),
-                        ),
-                        FloatingActionButton(
-                          heroTag: 'cam',
-                          backgroundColor:
-                              camEnabled
-                                  ? AppColors.lightBlue
-                                  : Colors.redAccent,
-                          onPressed: toggleCam,
-                          child: Icon(
-                            camEnabled ? Icons.videocam : Icons.videocam_off,
+
+                    Positioned(
+                      bottom: 24,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          FloatingActionButton(
+                            heroTag: 'mic',
+                            backgroundColor:
+                                micEnabled
+                                    ? AppColors.lightBlue
+                                    : Colors.redAccent,
+                            onPressed: toggleMic,
+                            child: Icon(micEnabled ? Icons.mic : Icons.mic_off),
                           ),
-                        ),
-                      ],
+                          FloatingActionButton(
+                            heroTag: 'hangup',
+                            backgroundColor: Colors.red,
+                            onPressed: hangUp,
+                            child: const Icon(Icons.call_end),
+                          ),
+                          FloatingActionButton(
+                            heroTag: 'cam',
+                            backgroundColor:
+                                camEnabled
+                                    ? AppColors.lightBlue
+                                    : Colors.redAccent,
+                            onPressed: toggleCam,
+                            child: Icon(
+                              camEnabled ? Icons.videocam : Icons.videocam_off,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
