@@ -8,7 +8,6 @@ class VideoCallScreen extends StatefulWidget {
   final bool isCaller;
   final CallController callController;
 
-  // Constructor
   const VideoCallScreen({
     Key? key,
     required this.callId,
@@ -26,8 +25,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
   @override
   void dispose() {
-    widget.callController.localRenderer.dispose();
     widget.callController.remoteRenderer.dispose();
+    widget.callController.localRenderer.dispose();
     widget.callController.peerConnection?.close();
     super.dispose();
   }
@@ -93,7 +92,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                   border: Border.all(
                     color: Colors.white,
                     width: 2,
-                  ), // borde blanco del container principal
+                  ), // borde del container principal
                   boxShadow: [
                     BoxShadow(
                       color: Colors.white.withOpacity(0.2),
@@ -112,7 +111,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                           border: Border.all(
                             color: Colors.white,
                             width: 2,
-                          ), // borde blanco en el video remoto
+                          ), // borde en el video remoto
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),

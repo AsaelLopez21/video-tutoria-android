@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:proyecto_android_videollamada/call_controllers/call_controller.dart';
 import 'package:proyecto_android_videollamada/widgets/screens_imports.dart';
 import 'package:proyecto_android_videollamada/models/navbar_pages.dart';
 import 'package:proyecto_android_videollamada/widgets/bottom_navbar.dart';
@@ -29,7 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? callSubscription;
   bool _isDialogShowing = false;
 
-  //y => escuchar si el el usuario es estudiante
   @override
   void initState() {
     super.initState();
@@ -47,11 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  //y => escuchar la llamada
   void listenIncomingCalls(String studentUid, BuildContext context) {
+    //y => Cancelar suscripcion previa
+    callSubscription?.cancel();
+
     callSubscription = FirebaseFirestore.instance
         .collection('calls')
         .where('calleeId', isEqualTo: studentUid)
+        .where('status', isEqualTo: 'ringing')
         .snapshots()
         .listen((snapshot) {
           if (snapshot.docs.isNotEmpty && !_isDialogShowing) {
@@ -59,17 +62,36 @@ class _HomeScreenState extends State<HomeScreen> {
             _isDialogShowing = true;
             _showIncomingCallDialog(context, callDoc.id).then((_) {
               _isDialogShowing = false;
+              // Reiniciar la escucha para nuevas llamadas
+              listenIncomingCalls(studentUid, context);
             });
           }
         });
   }
 
-  //Y => mostrar dialogo de la llamada
   Future<void> _showIncomingCallDialog(
     BuildContext mainContext,
     String callId,
-  ) {
-    return showDialog(
+  ) async {
+    final callDocRef = FirebaseFirestore.instance
+        .collection('calls')
+        .doc(callId);
+    late StreamSubscription callStatusSubscription;
+
+    final completer = Completer<void>();
+
+    //y => escuchar cambios en el documento de la llamada
+    callStatusSubscription = callDocRef.snapshots().listen((docSnapshot) {
+      if (!docSnapshot.exists || docSnapshot.data()?['status'] == 'ended') {
+        if (Navigator.canPop(mainContext)) {
+          Navigator.pop(mainContext);
+        }
+        callStatusSubscription.cancel();
+        completer.complete();
+      }
+    });
+
+    showDialog(
       context: mainContext,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -81,11 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('calls')
-                    .doc(callId)
-                    .delete();
+                await callDocRef.delete(); //o => Rechazar la llamada
                 Navigator.pop(dialogContext);
+                await callStatusSubscription.cancel();
+                completer.complete();
               },
               child: const Text('Rechazar'),
             ),
@@ -94,7 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pop(dialogContext);
                 await callSubscription?.cancel();
                 callSubscription = null;
-                await answerCall(callId, mainContext);
+                await callStatusSubscription.cancel();
+                await answerCall(
+                  callId,
+                  mainContext,
+                  callController: CallController(),
+                );
+                completer.complete();
               },
               child: const Text('Contestar'),
             ),
@@ -102,6 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+
+    return completer.future;
   }
 
   @override

@@ -1,20 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:proyecto_android_videollamada/call_controllers/call_controller.dart';
 import 'package:proyecto_android_videollamada/screens/videocall.dart';
 
-Future<void> answerCall(String callId, BuildContext context) async {
+Future<StreamSubscription> answerCall(
+  String callId,
+  BuildContext context, {
+  required CallController callController,
+}) async {
   final callDoc = FirebaseFirestore.instance.collection('calls').doc(callId);
   final callDataSnapshot = await callDoc.get();
   final callData = callDataSnapshot.data();
-  print('SE ESTA RECIBIENDO UNA LLAMADA ID LLAMADA: $callId');
+  // y=> debugPrint('SE ESTÁ RECIBIENDO UNA LLAMADA');
 
   if (!context.mounted) {
-    print('CONTEXTO NO MONTADO NO SE PUEDE NAVEGAR');
-    return;
+    //y => debugPrint('Contexto no montado, no se puede navegar.');
+    return Stream.empty().listen((_) {});
   } else {
-    print('SI SE PUEDE NAVEGAR');
+    debugPrint('Contexto montado, se puede navegar.');
   }
 
   if (callData == null) {
@@ -23,12 +28,10 @@ Future<void> answerCall(String callId, BuildContext context) async {
         const SnackBar(content: Text('La llamada ya no está disponible')),
       );
     }
-    return;
+    return Stream.empty().listen((_) {});
   }
 
   final offer = callData['offer'];
-
-  final callController = CallController();
 
   final configuration = {
     'iceServers': [
@@ -36,11 +39,13 @@ Future<void> answerCall(String callId, BuildContext context) async {
     ],
   };
 
+  //y => debugPrint('Creando RTCPeerConnection');
   callController.peerConnection = await createPeerConnection(configuration);
 
   await callController.localRenderer.initialize();
   await callController.remoteRenderer.initialize();
 
+  //y => debugPrint('Obteniendo stream local');
   final localStream = await navigator.mediaDevices.getUserMedia({
     'video': true,
     'audio': true,
@@ -49,43 +54,62 @@ Future<void> answerCall(String callId, BuildContext context) async {
 
   localStream.getTracks().forEach((track) {
     callController.peerConnection!.addTrack(track, localStream);
+    //y => debugPrint('Callee: Track agregado}');
   });
 
   callController.peerConnection!.onTrack = (event) {
     if (event.streams.isNotEmpty) {
       callController.remoteRenderer.srcObject = event.streams[0];
+      //y => debugPrint('Callee: Recibiendo stream remoto');
     }
   };
 
-  callController.peerConnection!.onIceCandidate = (candidate) {
-    callDoc.collection('calleeCandidates').add(candidate.toMap());
+  callController.peerConnection!.onIceCandidate = (candidate) async {
+    //y => debugPrint('Callee: Enviando candidato ICE');
+    try {
+      await callDoc.collection('calleeCandidates').add(candidate.toMap());
+      //y => debugPrint('Callee: Candidato ICE enviado correctamente');
+    } catch (e) {
+      debugPrint('Error enviando candidato ICE callee');
+    }
   };
 
   final offerDesc = RTCSessionDescription(offer['sdp'], offer['type']);
+  //y => debugPrint('Estableciendo descripcion remota');
   await callController.peerConnection!.setRemoteDescription(offerDesc);
+  //y => debugPrint('Descripcion remota establecida');
 
+  //y => debugPrint('Creando y estableciendo respuesta');
   final answer = await callController.peerConnection!.createAnswer();
   await callController.peerConnection!.setLocalDescription(answer);
 
-  await callDoc.update({'answer': answer.toMap()});
+  await callDoc.update({'answer': answer.toMap(), 'status': 'answered'});
+  //y => debugPrint('Respuesta guardada en Firestore');
 
-  callDoc.collection('callerCandidates').snapshots().listen((snapshot) {
-    for (var docChange in snapshot.docChanges) {
-      if (docChange.type == DocumentChangeType.added) {
-        final data = docChange.doc.data();
-        callController.peerConnection!.addCandidate(
-          RTCIceCandidate(
-            data?['candidate'],
-            data?['sdpMid'],
-            data?['sdpMLineIndex'],
-          ),
-        );
-      }
-    }
-  });
+  final callSubscription = callDoc
+      .collection('callerCandidates')
+      .snapshots()
+      .listen((snapshot) {
+        for (var docChange in snapshot.docChanges) {
+          if (docChange.type == DocumentChangeType.added) {
+            final data = docChange.doc.data();
+            if (data != null) {
+              //y => debugPrint('Callee: Recibiendo candidato ICE del caller',);
+              callController.peerConnection!.addCandidate(
+                RTCIceCandidate(
+                  data['candidate'],
+                  data['sdpMid'],
+                  data['sdpMLineIndex'],
+                ),
+              );
+            }
+          }
+        }
+      });
 
-  if (!context.mounted) return;
+  if (!context.mounted) return callSubscription;
 
+  //y => debugPrint('Navegando a la pantalla de videollamada');
   Navigator.push(
     context,
     MaterialPageRoute(
@@ -97,4 +121,6 @@ Future<void> answerCall(String callId, BuildContext context) async {
           ),
     ),
   );
+
+  return callSubscription;
 }
