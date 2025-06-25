@@ -30,4 +30,24 @@ Las funcionalidades principales incluyen:
 - Regístrate.
 
 ### Para desarrolladores  
-1. Clona el repositorio: 
+1. Clona el repositorio:
+ https://github.com/AsaelLopez21/video-tutoria-android  
+2. Navega a la carpeta del proyecto 
+3. Instala las dependencias:
+   npm flutter pub get
+4. Ejecutalo en un emulador
+   
+## Tecnologías utilizadas
+
+- Flutter y Dart para la aplicación.  
+- Firebase para base de datos, y almacenamiento de videollamadas.
+- Firebase auth para gestión de usuarios
+- WebRTC para conectar la videollamada.
+
+## Cómo usar
+
+- Regístrate con datos requeridos.
+- Agregar tutorados por matrícula.
+- Gestionar asesorados y notas para profesor.
+- Alumnos solo visualizan información de su tutor y anuncios si tienen tutor asignado.
+- Profesor inicia video llamada, alumno contesta.
