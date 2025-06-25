@@ -12,3 +12,22 @@ usuario, pantallas de login y registro para los usuarios, pantallas de calendari
 pantalla para agregar, editar y eliminar contactos, pantalla similar para agregar,
 editar y eliminar notas del usuario.
 
+
+Las funcionalidades principales incluyen:  
+- Pantallas de login y registro
+- Gestión de tutorados (agregar, eliminar).  
+- Gestión de anuncios para el profesor.  
+- Calendario.
+- Videollamadas entre profesores y estudiantes.
+
+## Instalación
+
+### Para usuarios finales  
+- Descarga e instala la APK desde el siguiente enlace:
+  https://drive.google.com/drive/folders/1yOvp7iBqh15Gui1iZbIC_DQMjr74_TA9?usp=sharing
+- Habilita la instalación para archivos APK.
+- Da permisos necesarios de audio y vídeo.
+- Regístrate.
+
+### Para desarrolladores  
+1. Clona el repositorio: 
